@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+{% block title %}Feel Comfort — Chat{% endblock %}
+
+{% block extra_css %}
+<style>
+    .navbar-fc {
+        background: rgba(26,25,41,.95);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .chat-wrap { height: calc(100vh - 64px); overflow: hidden; }
+
+    /* Left sidebar */
+    .sidebar {
+        width: 280px; min-width: 280px;
+        background: var(--bg-card);
+        border-right: 1px solid rgba(255,255,255,.08);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+    }
+    .session-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255,255,255,.05);
+        cursor: default;
+        transition: background .2s;
+    }
+    .session-item:hover { background: rgba(255,255,255,.04); }
+
+    /* Chat area */
+    .chat-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    #messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* Messages */
+    .msg-bubble {
+        max-width: 75%;
+        padding: 14px 18px;
+        border-radius: 18px;
+        line-height: 1.6;
+        font-size: .93rem;
+        white-space: pre-wrap;
+        animation: msgIn .25s ease;
+    }
+    @keyframes msgIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg-user {
+        background: linear-gradient(135deg, var(--primary), #8B5CF6);
+        color: #fff;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+    .msg-bot {
+        background: var(--bg-card);
+        border: 1px solid rgba(255,255,255,.1);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+    .msg-thinking {
+        background: rgba(108,99,255,.15);
+        border: 1px solid rgba(108,99,255,.3);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+        color: var(--muted);
+    }
+
+    /* Activity pills */
+    .activity-pill {
+        display: inline-block;
+        background: rgba(108,99,255,.15);
+        border: 1px solid rgba(108,99,255,.3);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: .8rem;
+        margin: 3px 4px 3px 0;
+        color: var(--text);
+    }
+
+    /* Input bar */
+    .input-bar {
+        padding: 16px 24px;
+        background: var(--bg-card);
+        border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .input-bar input {
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 12px;
+        color: #fff;
+        padding: 14px 18px;
+        font-size: .95rem;
+    }
+    .input-bar input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(108,99,255,.2);
+        background: rgba(255,255,255,.08);
+    }
+    .btn-send, .btn-voice {
+        width: 52px; height: 52px;
+        border-radius: 12px;
+        border: none;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+        transition: all .2s;
+        flex-shrink: 0;
+    }
+    .btn-send  { background: linear-gradient(135deg, var(--primary), #8B5CF6); color: #fff; }
+    .btn-voice { background: rgba(255,101,132,.15); border: 1px solid rgba(255,101,132,.3); color: #FF6584; }
+    .btn-voice.recording {
+        background: #FF6584;
+        color: #fff;
+        animation: pulse 1s infinite;
+    }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    .btn-send:hover  { transform: translateY(-2px); }
+    .btn-voice:hover { background: rgba(255,101,132,.25); }
+
+    /* Mood badge */
+    #moodIndicator {
+        padding: 8px 24px;
+        background: rgba(255,255,255,.03);
+        border-bottom: 1px solid rgba(255,255,255,.06);
+        display: none;
+        font-size: .83rem;
+        gap: 10px;
+        align-items: center;
+    }
+
+    /* Sidebar history */
+    .sidebar-header {
+        padding: 16px;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--muted);
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .hist-list { overflow-y: auto; flex: 1; }
+    .mood-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+        padding: 12px 16px;
+        border-top: 1px solid rgba(255,255,255,.08);
+        font-size: .8rem;
+        color: var(--muted);
+    }
+
+    @media (max-width: 768px) {
+        .sidebar { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Navbar -->
+<nav class="navbar navbar-fc">
+    <div class="container-fluid px-4">
+        <span class="fw-bold fs-5">💆 Feel Comfort</span>
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'dashboard' %}" class="text-muted text-decoration-none small">
+                <i class="fas fa-chart-bar me-1"></i>Dashboard
+            </a>
+            <span class="text-muted small">{{ request.user.display_name }}</span>
+            <a href="{% url 'logout' %}" class="btn btn-sm"
+               style="background:rgba(255,255,255,.08);color:#fff;border-radius:8px;border:none;">
+                Logout
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- Main layout -->
+<div class="d-flex chat-wrap">
+
+    <!-- Sidebar: History -->
+    <div class="sidebar">
+        <div class="sidebar-header">Recent Sessions</div>
+        <div class="hist-list">
+            {% for s in recent_sessions %}
+            {% with mood_colors="happy:#43D9A2,sad:#6C63FF,anxious:#FFB830,angry:#FF6584,tired:#A7A9BE,confused:#FF79C6,lonely:#BD93F9,calm:#43D9A2" %}
+            <div class="session-item">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="mood-dot"
+                         style="background:
+                         {% if s.detected_mood == 'happy' %}#43D9A2
+                         {% elif s.detected_mood == 'sad' %}#6C63FF
+                         {% elif s.detected_mood == 'anxious' %}#FFB830
+                         {% elif s.detected_mood == 'angry' %}#FF6584
+                         {% elif s.detected_mood == 'lonely' %}#BD93F9
+                         {% elif s.detected_mood == 'confused' %}#FF79C6
+                         {% elif s.detected_mood == 'tired' %}#A7A9BE
+                         {% else %}#43D9A2{% endif %}">
+                    </div>
+                    <span class="fw-semibold small" style="text-transform:capitalize;">{{ s.detected_mood }}</span>
+                    {% if s.input_type == 'voice' %}
+                    <i class="fas fa-microphone small text-muted ms-auto"></i>
+                    {% endif %}
+                </div>
+                <p class="mb-0 small text-muted" style="font-size:.75rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+                    {{ s.user_input_text|truncatechars:40 }}
+                </p>
+                <p class="mb-0 mt-1" style="font-size:.7rem;color:#666;">{{ s.created_at|timesince }} ago</p>
+            </div>
+            {% endwith %}
+            {% empty %}
+            <p class="text-muted text-center small p-4">No sessions yet.<br>Start talking! 💬</p>
+            {% endfor %}
+        </div>
+
+        {% if user_stats %}
+        <div class="stats-bar">
+            <div class="d-flex justify-content-between">
+                <span>Total sessions</span>
+                <span class="text-white fw-semibold">{{ user_stats.total_sessions }}</span>
+            </div>
+            {% if user_stats.most_frequent_mood %}
+            <div class="d-flex justify-content-between mt-1">
+                <span>Top mood</span>
+                <span class="text-white fw-semibold" style="text-transform:capitalize;">
+                    {{ user_stats.most_frequent_mood }}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Chat main area -->
+    <div class="chat-main">
+
+        <!-- Mood indicator bar -->
+        <div id="moodIndicator" class="d-flex">
+            <span id="moodEmoji" style="font-size:1.2rem;"></span>
+            <span id="moodLabel"></span>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages">
+            <div class="msg-bubble msg-bot">
+                👋 Hi <strong>{{ request.user.display_name }}</strong>! I'm ComfortBot.<br><br>
+                Tell me how you're feeling — type or use your voice.
+                I'll listen, understand your mood, and offer support. 💙
+            </div>
+        </div>
+
+        <!-- Input bar -->
+        <div class="input-bar">
+            <div class="d-flex gap-2">
+                <input type="text" id="msgInput"
+                       placeholder="Tell me how you're feeling..."
+                       onkeydown="if(event.key==='Enter')sendMsg()">
+                <button class="btn-send" onclick="sendMsg()" title="Send">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                <button class="btn-voice" id="voiceBtn" onclick="toggleVoice()" title="Voice input">
+                    <i class="fas fa-microphone" id="voiceIcon"></i>
+                </button>
+            </div>
+            <div class="text-muted mt-2" style="font-size:.75rem;">
+                <i class="fas fa-lock me-1"></i>Your conversations are private and stored securely.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrf = '{{ csrf_token }}';
+let recognition = null;
+let isRecording = false;
+
+const MOOD_COLORS = {
+    happy:'#43D9A2', sad:'#6C63FF', anxious:'#FFB830',
+    angry:'#FF6584', tired:'#A7A9BE', confused:'#FF79C6',
+    lonely:'#BD93F9', calm:'#43D9A2'
+};
+
+// ── Send text message ──────────────────────────────────
+async function sendMsg() {
+    const input = document.getElementById('msgInput');
+    const text  = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    addMsg('user', text);
+    const thinking = addMsg('thinking', '💭 Analyzing your mood...');
+
+    try {
+        const res  = await fetch('/chat/send/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        thinking.remove();
+
+        if (data.success) {
+            showMoodBar(data.mood, data.emoji, data.intensity, data.sentiment);
+            addBotResponse(data.response, data.activities);
+            speak(data.response);
+        } else {
+            addMsg('bot', '❌ Something went wrong. Please try again.');
+        }
+    } catch(e) {
+        thinking.remove();
+        addMsg('bot', '❌ Connection error. Please try again.');
+    }
+}
+
+// ── Voice input ────────────────────────────────────────
+function toggleVoice() {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        alert('Voice input requires Chrome browser. Please use Chrome.');
+        return;
+    }
+
+    if (isRecording) {
+        recognition && recognition.stop();
+        return;
+    }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+        isRecording = true;
+        document.getElementById('voiceBtn').classList.add('recording');
+        document.getElementById('voiceIcon').className = 'fas fa-stop';
+        document.getElementById('msgInput').placeholder = '🔴 Listening... speak now!';
+    };
+
+    recognition.onresult = (e) => {
+        const interim = Array.from(e.results).map(r => r[0].transcript).join('');
+        document.getElementById('msgInput').value = interim;
+    };
+
+    recognition.onend = async () => {
+        isRecording = false;
+        document.getElementById('voiceBtn').classList.remove('recording');
+        document.getElementById('voiceIcon').className = 'fas fa-microphone';
+        document.getElementById('msgInput').placeholder = 'Tell me how you\'re feeling...';
+
+        const voiceText = document.getElementById('msgInput').value.trim();
+        if (!voiceText) return;
+        document.getElementById('msgInput').value = '';
+
+        addMsg('user', `🎙️ ${voiceText}`);
+        const thinking = addMsg('thinking', '💭 Analyzing your mood...');
+
+        try {
+            const res  = await fetch('/chat/voice/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+                body: JSON.stringify({ voice_text: voiceText })
+            });
+            const data = await res.json();
+            thinking.remove();
+
+            if (data.success) {
+                showMoodBar(data.mood, data.emoji, data.intensity, data.sentiment);
+                addBotResponse(data.response, data.activities);
+                speak(data.response);
+            }
+        } catch(e) {
+            thinking.remove();
+            addMsg('bot', '❌ Error processing voice. Please try again.');
+        }
+    };
+
+    recognition.onerror = (e) => {
+        isRecording = false;
+        document.getElementById('voiceBtn').classList.remove('recording');
+        document.getElementById('voiceIcon').className = 'fas fa-microphone';
+        document.getElementById('msgInput').placeholder = 'Tell me how you\'re feeling...';
+        if (e.error !== 'aborted')
+            addMsg('bot', '❌ Couldn\'t capture voice clearly. Please try again.');
+    };
+
+    recognition.start();
+}
+
+// ── Text-to-Speech ─────────────────────────────────────
+function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    // Strip emoji for cleaner TTS
+    const clean = text.replace(/[\u{1F300}-\u{1FFFF}]/gu, '').replace(/[✨💙💚🔴💛🎉]/g, '');
+    const utt   = new SpeechSynthesisUtterance(clean);
+    utt.rate    = 0.9;
+    utt.pitch   = 1.0;
+    utt.volume  = 0.85;
+    // Try to use a natural English voice
+    const voices = window.speechSynthesis.getVoices();
+    const eng    = voices.find(v => v.lang.startsWith('en') && v.name.includes('Natural'))
+                || voices.find(v => v.lang.startsWith('en'));
+    if (eng) utt.voice = eng;
+    window.speechSynthesis.speak(utt);
+}
+
+// ── UI helpers ─────────────────────────────────────────
+function addMsg(type, text) {
+    const messages = document.getElementById('messages');
+    const div      = document.createElement('div');
+    div.className  = `msg-bubble msg-${type}`;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+}
+
+function addBotResponse(text, activities) {
+    const messages = document.getElementById('messages');
+    const div      = document.createElement('div');
+    div.className  = 'msg-bubble msg-bot';
+    div.style.maxWidth = '85%';
+    div.textContent = text;
+
+    if (activities && activities.length) {
+        const actDiv = document.createElement('div');
+        actDiv.style.marginTop = '12px';
+        activities.forEach(act => {
+            const pill = document.createElement('span');
+            pill.className   = 'activity-pill';
+            pill.textContent = act;
+            actDiv.appendChild(pill);
+        });
+        div.appendChild(actDiv);
+    }
+
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+function showMoodBar(mood, emoji, intensity, sentiment) {
+    const bar = document.getElementById('moodIndicator');
+    const color = MOOD_COLORS[mood] || '#6C63FF';
+    bar.style.display   = 'flex';
+    bar.style.borderBottom = `1px solid ${color}30`;
+    document.getElementById('moodEmoji').textContent = emoji;
+    document.getElementById('moodLabel').innerHTML =
+        `<span style="color:${color};font-weight:600;text-transform:capitalize;">${mood}</span>
+         <span style="color:var(--muted);"> · ${intensity} intensity · ${sentiment}</span>`;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Feel Comfort — AI Emotional Support{% endblock %}</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary:   #6C63FF;
+            --secondary: #FF6584;
+            --success:   #43D9A2;
+            --bg-dark:   #0F0E17;
+            --bg-card:   #1A1929;
+            --text:      #FFFFFE;
+            --muted:     #A7A9BE;
+        }
+
+        * { font-family: 'Inter', sans-serif; }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #8B5CF6);
+            border: none;
+            font-weight: 600;
+            transition: all .25s;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,99,255,.4); }
+
+        .card-dark {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 16px;
+        }
+
+        .form-control {
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            color: var(--text) !important;
+            border-radius: 12px;
+        }
+        .form-control:focus {
+            background: rgba(255,255,255,.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(108,99,255,.2);
+            color: var(--text);
+        }
+        .form-control::placeholder { color: var(--muted); }
+
+        .toast-container { z-index: 9999; }
+
+        /* Mood colour variables */
+        .mood-happy    { color: #43D9A2; }
+        .mood-sad      { color: #6C63FF; }
+        .mood-anxious  { color: #FFB830; }
+        .mood-angry    { color: #FF6584; }
+        .mood-tired    { color: #A7A9BE; }
+        .mood-confused { color: #FF79C6; }
+        .mood-lonely   { color: #BD93F9; }
+        .mood-calm     { color: #43D9A2; }
+
+        .badge-mood {
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: .75rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+
+        /* Page fade-in */
+        .page-enter { animation: fadeUp .4s ease forwards; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Toast notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="toast show align-items-center text-bg-{% if msg.tags == 'error' %}danger{% elif msg.tags == 'success' %}success{% else %}secondary{% endif %} border-0"
+         role="alert" data-bs-delay="4000" data-bs-autohide="true">
+        <div class="d-flex">
+            <div class="toast-body fw-semibold">{{ msg }}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+
+{% block content %}{% endblock %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Auto-dismiss toasts
+    document.querySelectorAll('.toast').forEach(el => new bootstrap.Toast(el).show());
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

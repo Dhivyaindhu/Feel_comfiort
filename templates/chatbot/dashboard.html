@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Feel Comfort{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card { background:var(--bg-card); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:24px; }
+    .stat-num  { font-size:2.5rem; font-weight:700; }
+    .chart-box { background:var(--bg-card); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:24px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar-fc" style="background:rgba(26,25,41,.95);border-bottom:1px solid rgba(255,255,255,.08);padding:14px 24px;">
+    <div class="d-flex justify-content-between align-items-center">
+        <a href="{% url 'chat' %}" class="text-decoration-none text-white fw-bold fs-5">
+            <i class="fas fa-arrow-left me-2 small"></i>💆 Feel Comfort
+        </a>
+        <span class="text-muted small">{{ request.user.display_name }}</span>
+    </div>
+</nav>
+
+<div class="container-fluid px-4 py-4" style="max-width:1200px;">
+    <h4 class="fw-bold mb-4">📊 Your Mood Dashboard</h4>
+
+    <!-- Stats cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p class="text-muted small mb-1">Total Sessions</p>
+                <div class="stat-num" style="color:#6C63FF;">{{ total }}</div>
+            </div>
+        </div>
+        {% if stats %}
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p class="text-muted small mb-1">Top Mood</p>
+                <div class="stat-num" style="color:#43D9A2;text-transform:capitalize;font-size:1.8rem;">
+                    {{ stats.most_frequent_mood }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p class="text-muted small mb-1">Avg. Polarity</p>
+                <div class="stat-num" style="color:{% if stats.average_polarity > 0 %}#43D9A2{% else %}#FF6584{% endif %};">
+                    {{ stats.average_polarity|floatformat:2 }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p class="text-muted small mb-1">Last Session</p>
+                <div class="fw-semibold mt-2">{{ stats.last_session_at|timesince }} ago</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Mood distribution chart -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="chart-box">
+                <h6 class="fw-semibold mb-3">Mood Distribution</h6>
+                <canvas id="moodChart" height="250"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-box">
+                <h6 class="fw-semibold mb-3">Mood Counts</h6>
+                <div id="moodList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const moodDist = {{ mood_dist|safe }};
+const COLORS = {
+    happy:'#43D9A2', sad:'#6C63FF', anxious:'#FFB830',
+    angry:'#FF6584', tired:'#A7A9BE', confused:'#FF79C6',
+    lonely:'#BD93F9', calm:'#50FA7B'
+};
+
+if (moodDist.length) {
+    const labels = moodDist.map(m => m.detected_mood);
+    const counts = moodDist.map(m => m.count);
+    const colors = labels.map(l => COLORS[l] || '#6C63FF');
+
+    new Chart(document.getElementById('moodChart'), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0 }] },
+        options: {
+            plugins: { legend: { labels: { color: '#fff', font: { family: 'Inter' } } } },
+        }
+    });
+
+    // List
+    const list = document.getElementById('moodList');
+    moodDist.forEach(m => {
+        const pct = Math.round((m.count / {{ total }}) * 100);
+        list.innerHTML += `
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                    <span style="text-transform:capitalize;font-size:.9rem;">${m.detected_mood}</span>
+                    <span class="text-muted small">${m.count} (${pct}%)</span>
+                </div>
+                <div style="background:rgba(255,255,255,.08);border-radius:999px;height:6px;">
+                    <div style="background:${COLORS[m.detected_mood]||'#6C63FF'};width:${pct}%;
+                                height:6px;border-radius:999px;transition:width .6s;"></div>
+                </div>
+            </div>`;
+    });
+} else {
+    document.getElementById('moodChart').parentElement.innerHTML =
+        '<p class="text-muted text-center py-5">No data yet — start chatting! 💬</p>';
+}
+</script>
+{% endblock %}

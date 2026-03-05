@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Sign In — Feel Comfort{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { font-family: 'DM Sans', sans-serif; }
+  body { background: #080C14; overflow-x: hidden; }
+
+  .bg-canvas { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.3; animation: drift 12s ease-in-out infinite alternate; }
+  .orb-1 { width: 550px; height: 550px; background: #3D2B8E; top: -180px; left: -120px; animation-duration: 14s; }
+  .orb-2 { width: 380px; height: 380px; background: #1A4A8A; bottom: -120px; right: -80px; animation-duration: 10s; animation-delay: -4s; }
+  .orb-3 { width: 220px; height: 220px; background: #6C2FA0; top: 40%; right: 20%; animation-duration: 8s; animation-delay: -2s; }
+  @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(30px,-40px) scale(1.1); } }
+
+  .page-wrap { position: relative; z-index: 1; min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+
+  .left-panel { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 60px 70px; }
+  .brand-mark { display: flex; align-items: center; gap: 12px; margin-bottom: 80px; }
+  .brand-icon { width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg,#6C63FF,#A78BFA); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+  .brand-name { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 600; color: #fff; }
+  .quote-block { max-width: 420px; }
+  .quote-line { width: 40px; height: 3px; background: linear-gradient(90deg,#6C63FF,#A78BFA); border-radius: 2px; margin-bottom: 28px; }
+  .quote-text { font-family: 'Playfair Display', serif; font-size: 2.5rem; line-height: 1.3; font-weight: 400; color: #fff; margin-bottom: 24px; }
+  .quote-text em { font-style: italic; color: #A78BFA; }
+  .quote-sub { color: #7A8BA6; font-size: 0.95rem; line-height: 1.7; max-width: 340px; }
+  .mood-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 48px; }
+  .pill { padding: 7px 16px; border-radius: 999px; font-size: 0.8rem; font-weight: 500; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #A7A9BE; animation: pillFloat 3s ease-in-out infinite alternate; }
+  .pill:nth-child(2){animation-delay:.4s}.pill:nth-child(3){animation-delay:.8s}.pill:nth-child(4){animation-delay:1.2s}.pill:nth-child(5){animation-delay:1.6s}.pill:nth-child(6){animation-delay:2s}
+  @keyframes pillFloat { from{transform:translateY(0);opacity:.5} to{transform:translateY(-5px);opacity:1} }
+
+  .right-panel { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 60px 50px; background: rgba(255,255,255,0.02); border-left: 1px solid rgba(255,255,255,0.06); }
+  .form-card { width: 100%; max-width: 400px; animation: slideUp .5s ease forwards; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+  .form-heading { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .form-sub { color: #7A8BA6; font-size: 0.9rem; margin-bottom: 36px; }
+
+  .field-group { margin-bottom: 20px; }
+  .field-label { display: block; font-size: 0.75rem; font-weight: 500; color: #7A8BA6; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .field-wrap { position: relative; }
+  .field-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #4A5568; font-size: 0.9rem; }
+  .form-control { width: 100%; background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 12px !important; color: #fff !important; padding: 14px 16px 14px 44px !important; font-size: 0.95rem !important; transition: all .2s !important; }
+  .form-control:focus { background: rgba(108,99,255,0.08) !important; border-color: #6C63FF !important; box-shadow: 0 0 0 3px rgba(108,99,255,.15) !important; outline: none !important; }
+  .form-control::placeholder { color: #4A5568 !important; }
+  .forgot-link { display: block; text-align: right; font-size: 0.8rem; color: #6C63FF; text-decoration: none; margin-top: 6px; transition: opacity .2s; }
+  .forgot-link:hover { opacity: .75; }
+
+  .error-box { background: rgba(255,100,100,0.08); border: 1px solid rgba(255,100,100,0.2); border-radius: 10px; padding: 12px 16px; color: #FF8080; font-size: 0.85rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+
+  .btn-signin { width: 100%; padding: 15px; background: linear-gradient(135deg,#6C63FF 0%,#A78BFA 100%); border: none; border-radius: 12px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 8px; transition: all .25s; position: relative; overflow: hidden; }
+  .btn-signin:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(108,99,255,.4); }
+
+  .divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .divider hr { flex: 1; border: none; border-top: 1px solid rgba(255,255,255,0.08); }
+  .divider span { color: #4A5568; font-size: 0.8rem; }
+  .switch-link { text-align: center; color: #7A8BA6; font-size: .875rem; }
+  .switch-link a { color: #A78BFA; font-weight: 600; text-decoration: none; transition: color .2s; }
+  .switch-link a:hover { color: #6C63FF; }
+
+  @media(max-width:768px){ .page-wrap{grid-template-columns:1fr} .left-panel{display:none} .right-panel{padding:40px 24px} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-canvas">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="page-wrap">
+  <div class="left-panel">
+    <div class="brand-mark">
+      <div class="brand-icon">💆</div>
+      <span class="brand-name">Feel Comfort</span>
+    </div>
+    <div class="quote-block">
+      <div class="quote-line"></div>
+      <p class="quote-text">Your emotions<br>are <em>valid.</em><br>You are heard.</p>
+      <p class="quote-sub">A safe space powered by AI — to help you understand your feelings, lift your mood, and find calm in the chaos.</p>
+      <div class="mood-pills">
+        <span class="pill">😢 Sad</span>
+        <span class="pill">😰 Anxious</span>
+        <span class="pill">😡 Angry</span>
+        <span class="pill">😊 Happy</span>
+        <span class="pill">😴 Tired</span>
+        <span class="pill">😌 Calm</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="form-card">
+      <h1 class="form-heading">Welcome back</h1>
+      <p class="form-sub">Your comfort space is waiting for you ✨</p>
+
+      {% if form.errors %}
+      <div class="error-box">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        Invalid username or password. Please try again.
+      </div>
+      {% endif %}
+
+      <form method="POST" novalidate>
+        {% csrf_token %}
+        <div class="field-group">
+          <label class="field-label">Username</label>
+          <div class="field-wrap">
+            <i class="fa-regular fa-user field-icon"></i>
+            <input type="text" name="username" class="form-control" placeholder="Enter your username" value="{{ form.username.value|default:'' }}" autocomplete="username">
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <div class="field-wrap">
+            <i class="fa-solid fa-lock field-icon"></i>
+            <input type="password" name="password" class="form-control" placeholder="Enter your password" autocomplete="current-password" id="pwdField">
+          </div>
+          <a href="#" class="forgot-link" onclick="togglePwd(event)" id="pwdToggle">Show password</a>
+        </div>
+        <button type="submit" class="btn-signin">Sign In &nbsp;→</button>
+      </form>
+
+      <div class="divider"><hr><span>New here?</span><hr></div>
+      <p class="switch-link">Don't have an account? <a href="{% url 'register' %}">Create one free</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePwd(e) {
+  e.preventDefault();
+  var f = document.getElementById('pwdField');
+  var t = document.getElementById('pwdToggle');
+  if (f.type === 'password') { f.type = 'text'; t.textContent = 'Hide password'; }
+  else { f.type = 'password'; t.textContent = 'Show password'; }
+}
+</script>
+{% endblock %}
