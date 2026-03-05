@@ -337,22 +337,42 @@ function toggleVoice() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SR();
     recognition.lang = 'en-US';
-    recognition.continuous = false;
+    recognition.continuous = true;       // keeps listening through pauses
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    let finalTranscript = '';
+    let silenceTimer = null;
 
     recognition.onstart = () => {
         isRecording = true;
+        finalTranscript = '';
         document.getElementById('voiceBtn').classList.add('recording');
         document.getElementById('voiceIcon').className = 'fas fa-stop';
-        document.getElementById('msgInput').placeholder = '🔴 Listening... speak now!';
+        document.getElementById('msgInput').placeholder = '🔴 Listening... speak freely, press stop when done!';
     };
 
     recognition.onresult = (e) => {
-        const interim = Array.from(e.results).map(r => r[0].transcript).join('');
-        document.getElementById('msgInput').value = interim;
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+                finalTranscript += e.results[i][0].transcript + ' ';
+            } else {
+                interim += e.results[i][0].transcript;
+            }
+        }
+        // Show combined text in input box
+        document.getElementById('msgInput').value = (finalTranscript + interim).trim();
+
+        // Auto-stop after 3 seconds of silence (optional safety net)
+        clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+            if (isRecording) recognition.stop();
+        }, 8000);
     };
 
     recognition.onend = async () => {
+        clearTimeout(silenceTimer);
         isRecording = false;
         document.getElementById('voiceBtn').classList.remove('recording');
         document.getElementById('voiceIcon').className = 'fas fa-microphone';
@@ -386,6 +406,12 @@ function toggleVoice() {
     };
 
     recognition.onerror = (e) => {
+        clearTimeout(silenceTimer);
+        // 'no-speech' is normal during pauses in continuous mode — restart quietly
+        if (e.error === 'no-speech' && isRecording) {
+            recognition.start();
+            return;
+        }
         isRecording = false;
         document.getElementById('voiceBtn').classList.remove('recording');
         document.getElementById('voiceIcon').className = 'fas fa-microphone';
